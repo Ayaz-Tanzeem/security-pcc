@@ -53,16 +53,16 @@ final class TC2NSPTokenProvider: TC2TokenProvider, Sendable {
         let ottIssuer = self.config.ottIssuer
         logger.log("fetching with lttIssuer=\(lttIssuer), ottIssuer=\(ottIssuer)")
 
-        let lltChallenge = NSPPrivateAccessTokenChallenge(rsaBlindSignatureChallengeWithIssuerName: lttIssuer, redemptionNonce: nil, originNames: nil)
+        let lttChallenge = NSPPrivateAccessTokenChallenge(rsaBlindSignatureChallengeWithIssuerName: lttIssuer, redemptionNonce: nil, originNames: nil)
         let ottChallenge = NSPPrivateAccessTokenChallenge(rsaBlindSignatureChallengeWithIssuerName: ottIssuer, redemptionNonce: nil, originNames: nil)
-        let fetcher = NSPPrivateAccessTokenFetcher(forKnownIssuerWithLongLivedTokenChallenge: lltChallenge.challengeData!, oneTimeTokenChallenge: ottChallenge.challengeData!)
+        let fetcher = NSPPrivateAccessTokenFetcher(forKnownIssuerWithLongLivedTokenChallenge: lttChallenge.challengeData!, oneTimeTokenChallenge: ottChallenge.challengeData!)
         fetcher.systemClient = true
 
-        let llt: Data
+        let ltt: Data
         let ott: Data
         let salt: Data
         do {
-            (llt, ott, salt) = try await fetcher.fetchLinkedTokenPair(with: .main)
+            (ltt, ott, salt) = try await fetcher.fetchLinkedTokenPair(with: .main)
         } catch let originalError as NSError where originalError.domain == PrivacyProxyError.domain && originalError.code == PrivacyProxyError.serverFailure {
             logger.error("retrying failed fetch after error=\(originalError)")
             // rdar://128089167 (Thimble client to retry on token granting server errors)
@@ -70,7 +70,7 @@ final class TC2NSPTokenProvider: TC2TokenProvider, Sendable {
             // will not permit us to violate whatever retry-after the server sets (which
             // means this may well fail due to retry-after).
             do {
-                (llt, ott, salt) = try await fetcher.fetchLinkedTokenPair(with: .main)
+                (ltt, ott, salt) = try await fetcher.fetchLinkedTokenPair(with: .main)
             } catch {
                 logger.error("retry fetch failed with error=\(error)")
                 throw originalError
@@ -80,7 +80,7 @@ final class TC2NSPTokenProvider: TC2TokenProvider, Sendable {
             throw error
         }
 
-        logger.log("fetched llt=\(llt), ott=\(ott); salt=\(salt)")
-        return (llt, ott, salt)
+        logger.log("fetched ltt=\(ltt), ott=\(ott); salt=\(salt)")
+        return (ltt, ott, salt)
     }
 }
